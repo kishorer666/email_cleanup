@@ -1,5 +1,7 @@
 const express = require('express');
 const {google} = require('googleapis');
+// Load local .env in development
+try { require('dotenv').config(); } catch (e) {}
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('cookie-session');
@@ -32,6 +34,9 @@ function createOAuthClient() {
 }
 
 app.get('/auth/google', (req, res) => {
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    return res.status(500).send('OAuth client not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
+  }
   const oauth2Client = createOAuthClient();
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',
@@ -42,6 +47,7 @@ app.get('/auth/google', (req, res) => {
 
 app.get('/auth/google/callback', async (req, res) => {
   try {
+    if (!req.query.code) return res.status(400).send('Missing code in callback');
     const oauth2Client = createOAuthClient();
     const {tokens} = await oauth2Client.getToken(req.query.code);
     oauth2Client.setCredentials(tokens);
@@ -49,8 +55,13 @@ app.get('/auth/google/callback', async (req, res) => {
     res.redirect('/');
   } catch (err) {
     console.error(err);
-    res.status(500).send('Auth failed');
+    res.status(500).send('Auth failed: ' + (err.message || String(err)));
   }
+});
+
+// Debug endpoint to inspect important env values (safe for local use)
+app.get('/debug/env', (req, res) => {
+  res.json({CLIENT_ID: !!CLIENT_ID, CLIENT_SECRET: !!CLIENT_SECRET, BASE_URL});
 });
 
 function requireAuth(req, res, next) {
