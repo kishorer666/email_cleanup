@@ -42,19 +42,50 @@ app.get('/auth/google', (req, res) => {
     access_type: 'offline',
     scope: SCOPES
   });
+  // Log the URL so you can inspect the redirect_uri being sent to Google
+  console.log('Generated Google auth URL:', url);
+  // Also expose a non-redirecting debug endpoint to inspect the URL
+  // (useful when debugging redirect_uri_mismatch)
+  // GET /debug/authurl will return the same URL as JSON
   res.redirect(url);
+});
+
+app.get('/debug/authurl', (req, res) => {
+  if (!CLIENT_ID || !CLIENT_SECRET) return res.status(500).json({error: 'oauth-not-configured'});
+  const oauth2Client = createOAuthClient();
+  const url = oauth2Client.generateAuthUrl({access_type: 'offline', scope: SCOPES});
+  res.json({authUrl: url});
 });
 
 app.get('/auth/google/callback', async (req, res) => {
   try {
+    console.log('OAuth callback query:', req.query);
     if (!req.query.code) return res.status(400).send('Missing code in callback');
     const oauth2Client = createOAuthClient();
-    const {tokens} = await oauth2Client.getToken(req.query.code);
+    // attempt token exchange, with one retry on transient errors
+    let tokens;
+    try {
+      ({tokens} = await oauth2Client.getToken(req.query.code));
+    } catch (firstErr) {
+      console.error('First token exchange error:', firstErr && firstErr.message);
+      // if connection reset or transient network issue, try once more after short delay
+      if (firstErr && firstErr.code && String(firstErr.code).toLowerCase().includes('econnreset')) {
+        console.log('Detected ECONNRESET, retrying token exchange after 500ms...');
+        await new Promise(r => setTimeout(r, 500));
+        ({tokens} = await oauth2Client.getToken(req.query.code));
+      } else {
+        throw firstErr;
+      }
+    }
     oauth2Client.setCredentials(tokens);
     req.session.tokens = tokens;
     res.redirect('/');
   } catch (err) {
-    console.error(err);
+    console.error('OAuth callback error stack:', err && err.stack ? err.stack : err);
+    // provide a slightly friendlier message for network errors
+    if (err && err.code && String(err.code).toLowerCase().includes('econnreset')) {
+      return res.status(502).send('Auth failed: network connection reset when contacting Google token endpoint (ECONNRESET). Check network/proxy/firewall.');
+    }
     res.status(500).send('Auth failed: ' + (err.message || String(err)));
   }
 });
