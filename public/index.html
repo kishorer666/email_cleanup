@@ -16,15 +16,63 @@
       </div>
 
       <div id="controls" style="display:none">
-        <label>Search query (Gmail search syntax):</label>
-        <input id="query" placeholder="subject:invoice OR from:news@example.com" />
-        <button id="scan">Scan</button>
-        <div id="results"></div>
-        <div id="actions" style="margin-top:10px;display:none">
+        <label class="label">Search query (Gmail search syntax):</label>
+        <div class="row">
+          <input id="query" placeholder="subject:invoice OR from:news@example.com" />
+          <button id="scan" class="btn primary">Scan</button>
+        </div>
+
+        <div class="row small">
+          <div>
+            <label class="label">From</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div>
+            <label class="label">To</label>
+            <input type="date" id="date-to" />
+          </div>
+          <div class="align-end">
+            <label class="label">Select</label>
+            <label class="select-all"><input type="checkbox" id="select-all" /> Select All</label>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+          <label class="label" style="margin-right:6px">Dedupe threshold</label>
+          <input type="range" id="fuzzy-threshold" min="50" max="95" value="75" />
+          <span id="fuzzy-value" style="color:var(--muted);margin-left:8px">75%</span>
+          <div style="flex:1"></div>
+          <label style="color:var(--muted)"><input type="checkbox" id="bg-job" /> Use background job for deletions</label>
+        </div>
+
+        <div id="actions-top" style="display:none;margin-top:12px">
           <label>Delete mode:</label>
           <select id="mode"><option value="trash">Move to Trash</option><option value="delete">Permanently Delete</option></select>
-          <button id="delete">Delete Selected</button>
+          <label style="margin-left:12px"><input type="checkbox" id="dry-run" /> Dry-run</label>
+          <button id="delete" class="btn danger">Delete Selected</button>
         </div>
+
+        <div id="results" class="results"></div>
+        <div id="pager" class="pager" style="display:none">
+          <button id="prev-page" class="btn">Prev</button>
+          <button id="next-page" class="btn">Next</button>
+        </div>
+        <div id="dedupe" style="margin-top:12px"></div>
+
+      </div>
+
+      <!-- Confirmation modal -->
+      <div id="confirm-modal" class="modal" style="display:none">
+        <div class="modal-card">
+          <h3>Confirm Deletion</h3>
+          <p id="confirm-summary"></p>
+          <div id="confirm-samples" class="results" style="max-height:180px;overflow:auto"></div>
+          <div style="margin-top:12px;display:flex;gap:12px;justify-content:flex-end">
+            <button id="confirm-cancel" class="btn">Cancel</button>
+            <button id="confirm-ok" class="btn danger">Confirm</button>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
     <script src="/main.js"></script>
