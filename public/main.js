@@ -9,7 +9,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const scanBtn = $('#scan');
   const queryInput = $('#query');
   const resultsDiv = $('#results');
-  const actionsDiv = $('#actions');
+  const actionsDiv = $('#actions-top');
   const deleteBtn = $('#delete');
   const modeSel = $('#mode');
 
@@ -47,6 +47,12 @@ window.addEventListener('DOMContentLoaded', () => {
   const pageHistory = [];
   let currentNextToken = null;
 
+  // ensure fuzzy value display initializes
+  const fuzzyInput = $('#fuzzy-threshold');
+  const fuzzyValue = $('#fuzzy-value');
+  if (fuzzyInput && fuzzyValue) fuzzyValue.textContent = fuzzyInput.value + '%';
+  fuzzyInput?.addEventListener('input', ()=>{ if (fuzzyValue) fuzzyValue.textContent = fuzzyInput.value + '%'; });
+
   scanBtn.onclick = async () => {
     let q = queryInput.value.trim();
     if (!q) return alert('Enter a query');
@@ -56,10 +62,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (from) q += ` after:${from}`;
     if (to) q += ` before:${to}`;
     const fuzzyThreshold = Number($('#fuzzy-threshold').value) / 100.0;
-    // update fuzzy value display
-    $('#fuzzy-value').textContent = $('#fuzzy-threshold').value + '%';
     resultsDiv.innerHTML = '<div class="snippet">Scanning...</div>';
-    const res = await fetch('/api/gmail/search', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:q})});
+    const res = await fetch('/api/gmail/search', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:q,fuzzyThreshold})});
     if (!res.ok) { resultsDiv.textContent = 'Scan failed'; return }
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) { resultsDiv.textContent = 'Scan failed (non-json response)'; return }
@@ -109,18 +113,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // show top actions and pager
     $('#actions-top').style.display = 'flex';
-    actionsDiv.style.display = 'block';
+    if (actionsDiv) actionsDiv.style.display = 'flex';
     // wire select-all
     const selectAll = $('#select-all');
     if (selectAll){ selectAll.checked = false; selectAll.onchange = () => { const boxes = resultsDiv.querySelectorAll('input[type=checkbox]'); boxes.forEach(b => b.checked = selectAll.checked); }; }
     // clicking any checkbox should update select-all
-    resultsDiv.addEventListener('change', (e)=>{
-      if (e.target && e.target.type === 'checkbox') {
-        const boxes = resultsDiv.querySelectorAll('input[type=checkbox]');
-        const checked = resultsDiv.querySelectorAll('input[type=checkbox]:checked');
-        selectAll.checked = boxes.length === checked.length;
-      }
-    });
+    // ensure we only add one change listener
+    if (!resultsDiv._hasChangeListener) {
+      resultsDiv.addEventListener('change', (e)=>{
+        if (e.target && e.target.type === 'checkbox') {
+          const boxes = resultsDiv.querySelectorAll('input[type=checkbox]');
+          const checked = resultsDiv.querySelectorAll('input[type=checkbox]:checked');
+          selectAll.checked = boxes.length === checked.length;
+        }
+      });
+      resultsDiv._hasChangeListener = true;
+    }
+    
   }
 
   // pager handlers
