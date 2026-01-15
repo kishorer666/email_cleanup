@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Email Cleanup UI</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Email Cleanup</h1>
+      <div id="auth">
+        <button id="connect">Connect Google Account</button>
+        <button id="logout" style="display:none">Logout</button>
+        <div id="profile"></div>
+      </div>
+
+      <div id="controls" style="display:none">
+        <label>Search query (Gmail search syntax):</label>
+        <input id="query" placeholder="subject:invoice OR from:news@example.com" />
+        <button id="scan">Scan</button>
+        <div id="results"></div>
+        <div id="actions" style="margin-top:10px;display:none">
+          <label>Delete mode:</label>
+          <select id="mode"><option value="trash">Move to Trash</option><option value="delete">Permanently Delete</option></select>
+          <button id="delete">Delete Selected</button>
+        </div>
+      </div>
+    </div>
+    <script src="/main.js"></script>
+  </body>
+</html>
