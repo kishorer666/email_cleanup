@@ -122,20 +122,28 @@ app.post('/api/gmail/search', requireAuth, async (req, res) => {
   const {query} = req.body;
   if (!query) return res.status(400).json({error: 'missing-query'});
   try {
+    console.log('Gmail search requested, query:', query);
     const oauth2Client = createOAuthClient();
     oauth2Client.setCredentials(req.session.tokens);
     const gmail = google.gmail({version: 'v1', auth: oauth2Client});
     const listRes = await gmail.users.messages.list({userId: 'me', q: query, maxResults: 200});
     const messages = listRes.data.messages || [];
+    console.log('Gmail list returned', messages.length, 'messages');
     const items = [];
     for (const m of messages) {
-      const msg = await gmail.users.messages.get({userId: 'me', id: m.id, format: 'metadata', metadataHeaders: ['Subject','From','Date']});
-      items.push({id: m.id, threadId: m.threadId, snippet: msg.data.snippet, payload: msg.data.payload, headers: msg.data.payload?.headers});
+      try {
+        const msg = await gmail.users.messages.get({userId: 'me', id: m.id, format: 'metadata', metadataHeaders: ['Subject','From','Date']});
+        items.push({id: m.id, threadId: m.threadId, snippet: msg.data.snippet, payload: msg.data.payload, headers: msg.data.payload?.headers});
+      } catch (e) {
+        console.error('Failed to fetch message', m.id, e && e.stack ? e.stack : e);
+        // continue with other messages
+        items.push({id: m.id, threadId: m.threadId, error: e.message || String(e)});
+      }
     }
     res.json({items});
   } catch (err) {
-    console.error(err);
-    res.status(500).json({error: 'search-failed'});
+    console.error('Gmail search error:', err && err.stack ? err.stack : err);
+    res.status(500).json({error: err.message || 'search-failed'});
   }
 });
 
