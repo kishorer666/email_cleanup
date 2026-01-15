@@ -9,10 +9,14 @@
   <body>
     <div class="container">
       <h1>Email Cleanup</h1>
-      <div id="auth">
-        <button id="connect">Connect Google Account</button>
-        <button id="logout" style="display:none">Logout</button>
-        <div id="profile"></div>
+      <div id="auth" class="auth">
+        <div class="auth-left">
+          <button id="connect" class="btn primary">Connect Google Account</button>
+        </div>
+        <div class="auth-right" style="display:none">
+          <div id="profile" class="profile"></div>
+          <button id="logout" class="btn" style="margin-left:12px;">Logout</button>
+        </div>
       </div>
 
       <div id="controls" style="display:none">
@@ -32,8 +36,7 @@
             <input type="date" id="date-to" />
           </div>
           <div class="align-end">
-            <label class="label">Select</label>
-            <label class="select-all"><input type="checkbox" id="select-all" /> Select All</label>
+            <label class="select-all"><input type="checkbox" id="select-all" /> <span>Select All</span></label>
           </div>
         </div>
 

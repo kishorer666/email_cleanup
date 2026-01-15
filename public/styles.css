@@ -10,12 +10,26 @@
 body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#071023 0%, #081226 60%, #0b1220 100%);color:#e6eef6}
 .container{max-width:980px;margin:48px auto;padding:28px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:14px;box-shadow:0 10px 40px rgba(2,6,23,0.7);border:1px solid rgba(255,255,255,0.03)}
 .container h1{margin:0;font-weight:700;letter-spacing:0.2px}
+.auth{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.auth-left{display:flex;align-items:center;gap:12px}
+.auth-right{display:flex;align-items:center}
+.profile{color:var(--accent);font-weight:600;margin-right:8px}
 .label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
 .row{display:flex;gap:12px;align-items:center}
 .row.small{margin-top:12px}
 .row.small > div{flex:1}
 .align-end{display:flex;align-items:center;justify-content:flex-end}
 input,select{padding:10px;border-radius:10px;background:var(--card);border:1px solid rgba(255,255,255,0.03);color:var(--muted);width:100%;outline:none;transition:box-shadow .18s ease,transform .12s ease}
+input[type="date"]{padding:8px 10px;height:40px}
+.select-all{color:var(--muted);display:flex;align-items:center;gap:8px}
+
+/* search input styling */
+#query{background:linear-gradient(90deg,rgba(255,255,255,0.02),transparent);border:1px solid rgba(255,255,255,0.04);color:#e6eef6;padding:12px 14px;border-radius:12px;font-size:14px}
+#query::placeholder{color:rgba(230,238,246,0.5)}
+
+/* fuzzy slider styling */
+#fuzzy-threshold{width:220px}
+#fuzzy-value{min-width:40px;display:inline-block}
 input:focus,select:focus{box-shadow:0 6px 18px rgba(14,165,233,0.08);transform:translateY(-1px);color:#e6eef6}
 .btn{padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(90deg,var(--glass),rgba(255,255,255,0.02));color:var(--accent);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
 .btn.primary{background:linear-gradient(90deg,#064e3b,#087f5b);color:#071826;box-shadow:0 6px 24px rgba(6,78,59,0.2);font-weight:700}

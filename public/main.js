@@ -26,9 +26,12 @@ window.addEventListener('DOMContentLoaded', () => {
       const contentType = r.headers.get('content-type') || '';
       if (!r.ok || !contentType.includes('application/json')) throw new Error('not logged in');
       const data = await r.json();
-      profileDiv.textContent = `Connected: ${data.email || data.name}`;
-      connectBtn.style.display='none';
-      logoutBtn.style.display='inline-block';
+      // show profile and logout nicely
+      const authRight = document.querySelector('.auth-right');
+      if (authRight) authRight.style.display = 'flex';
+      const authLeft = document.querySelector('.auth-left');
+      if (authLeft) authLeft.style.display = 'none';
+      profileDiv.innerHTML = `<div class="profile">${data.email || data.name}</div>`;
       controls.style.display='block';
     }catch(e){
       profileDiv.textContent = '';
@@ -53,6 +56,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (from) q += ` after:${from}`;
     if (to) q += ` before:${to}`;
     const fuzzyThreshold = Number($('#fuzzy-threshold').value) / 100.0;
+    // update fuzzy value display
+    $('#fuzzy-value').textContent = $('#fuzzy-threshold').value + '%';
     resultsDiv.innerHTML = '<div class="snippet">Scanning...</div>';
     const res = await fetch('/api/gmail/search', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:q})});
     if (!res.ok) { resultsDiv.textContent = 'Scan failed'; return }
@@ -107,11 +112,7 @@ window.addEventListener('DOMContentLoaded', () => {
     actionsDiv.style.display = 'block';
     // wire select-all
     const selectAll = $('#select-all');
-    selectAll.checked = false;
-    selectAll.onchange = () => {
-      const boxes = resultsDiv.querySelectorAll('input[type=checkbox]');
-      boxes.forEach(b => b.checked = selectAll.checked);
-    };
+    if (selectAll){ selectAll.checked = false; selectAll.onchange = () => { const boxes = resultsDiv.querySelectorAll('input[type=checkbox]'); boxes.forEach(b => b.checked = selectAll.checked); }; }
     // clicking any checkbox should update select-all
     resultsDiv.addEventListener('change', (e)=>{
       if (e.target && e.target.type === 'checkbox') {
@@ -166,13 +167,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Delete / confirm flow
   const dryRunChk = $('#dry-run');
-  deleteBtn.onclick = async () => {
+  // bind top delete button
+  const topDeleteBtn = document.getElementById('delete');
+  topDeleteBtn.onclick = async () => {
     const checked = Array.from(resultsDiv.querySelectorAll('input[type=checkbox]:checked')).map(c=>c.dataset.id);
     if (checked.length===0) return alert('Select messages to delete');
-    // show modal with summary and samples
     $('#confirm-summary').textContent = `${checked.length} messages selected. Mode: ${$('#mode').value}. Dry-run: ${dryRunChk.checked}`;
     const samplesDiv = $('#confirm-samples'); samplesDiv.innerHTML = '';
-    // show up to 5 samples
     const boxes = Array.from(resultsDiv.querySelectorAll('input[type=checkbox]')).filter(b=>b.checked).slice(0,5);
     boxes.forEach(b=>{ const li = b.closest('li').cloneNode(true); li.style.borderBottom='none'; samplesDiv.appendChild(li); });
     $('#confirm-modal').style.display='flex';
@@ -205,22 +206,5 @@ window.addEventListener('DOMContentLoaded', () => {
       resultsDiv.innerHTML=''; $('#actions-top').style.display='none';
     }
   };
-
-  deleteBtn.onclick = async () => {
-    const checked = Array.from(resultsDiv.querySelectorAll('input[type=checkbox]:checked')).map(c=>c.dataset.id);
-    if (checked.length===0) return alert('Select messages to delete');
-    if (!confirm(`Really delete ${checked.length} messages?`)) return;
-    deleteBtn.disabled = true;
-    const mode = modeSel.value;
-    const res = await fetch('/api/gmail/delete', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ids:checked,mode})});
-    deleteBtn.disabled = false;
-    if (!res.ok) return alert('Delete failed');
-    const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) return alert('Delete failed (non-json response)');
-    const data = await res.json();
-    alert('Operation complete');
-    checkProfile();
-    resultsDiv.innerHTML = '';
-    actionsDiv.style.display='none';
-  }
+  
 });
