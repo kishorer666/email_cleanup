@@ -1,83 +1,115 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Email Cleanup UI</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <div class="container">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Email Cleanup UI</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <!-- Envelope -->
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <!-- Flap -->
+        <polyline points="22 6 12 13 2 6"></polyline>
+      </svg>
       <h1>Email Cleanup</h1>
-      <div id="auth" class="auth">
-        <div class="auth-left">
-          <button id="connect" class="btn primary">Connect Google Account</button>
-        </div>
-        <div class="auth-right" style="display:none">
-          <div id="profile" class="profile"></div>
-          <button id="logout" class="btn" style="margin-left:12px;">Logout</button>
-        </div>
+    </div>
+    <div id="auth" class="auth">
+      <div class="auth-left">
+        <button id="connect" class="btn primary">Connect Google Account</button>
       </div>
-
-      <div id="controls" style="display:none">
-        <label class="label">Search query (Gmail search syntax):</label>
-        <div class="row">
-          <input id="query" placeholder="subject:invoice OR from:news@example.com" />
-          <button id="scan" class="btn primary">Scan</button>
-        </div>
-
-        <div class="row small">
-          <div>
-            <label class="label">From</label>
-            <input type="date" id="date-from" />
-          </div>
-          <div>
-            <label class="label">To</label>
-            <input type="date" id="date-to" />
-          </div>
-          <div class="align-end">
-            <label class="select-all"><input type="checkbox" id="select-all" /> <span>Select All</span></label>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
-          <label class="label" style="margin-right:6px">Dedupe threshold</label>
-          <input type="range" id="fuzzy-threshold" min="50" max="95" value="75" />
-          <span id="fuzzy-value" style="color:var(--muted);margin-left:8px">75%</span>
-          <div style="flex:1"></div>
-          <label style="color:var(--muted)"><input type="checkbox" id="bg-job" /> Use background job for deletions</label>
-        </div>
-
-        <div id="actions-top" style="display:none;margin-top:12px">
-          <label>Delete mode:</label>
-          <select id="mode"><option value="trash">Move to Trash</option><option value="delete">Permanently Delete</option></select>
-          <label style="margin-left:12px"><input type="checkbox" id="dry-run" /> Dry-run</label>
-          <button id="delete" class="btn danger">Delete Selected</button>
-        </div>
-
-        <div id="results" class="results"></div>
-        <div id="pager" class="pager" style="display:none">
-          <button id="prev-page" class="btn">Prev</button>
-          <button id="next-page" class="btn">Next</button>
-        </div>
-        <div id="dedupe" style="margin-top:12px"></div>
-
-      </div>
-
-      <!-- Confirmation modal -->
-      <div id="confirm-modal" class="modal" style="display:none">
-        <div class="modal-card">
-          <h3>Confirm Deletion</h3>
-          <p id="confirm-summary"></p>
-          <div id="confirm-samples" class="results" style="max-height:180px;overflow:auto"></div>
-          <div style="margin-top:12px;display:flex;gap:12px;justify-content:flex-end">
-            <button id="confirm-cancel" class="btn">Cancel</button>
-            <button id="confirm-ok" class="btn danger">Confirm</button>
-          </div>
-        </div>
-      </div>
+      <div class="auth-right" style="display:none">
+        <div id="profile" class="profile"></div>
+        <button id="logout" class="btn" style="margin-left:12px;">Logout</button>
       </div>
     </div>
-    <script src="/main.js"></script>
-  </body>
+
+    <div id="controls" style="display:none">
+      <label class="label">Search query (Gmail search syntax):</label>
+      <div class="row">
+        <input id="query" placeholder="subject:invoice OR from:news@example.com" />
+        <button id="scan" class="btn primary">Scan</button>
+      </div>
+
+      <div id="search-history" style="margin-top:12px;display:none">
+        <label class="label">Recent Searches:</label>
+        <div id="history-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+
+      <div class="row small">
+        <div>
+          <label class="label">From</label>
+          <input type="date" id="date-from" />
+        </div>
+        <div>
+          <label class="label">To</label>
+          <input type="date" id="date-to" />
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+        <label class="label" style="margin-right:6px">Dedupe threshold</label>
+        <input type="range" id="fuzzy-threshold" min="50" max="95" value="75" />
+        <span id="fuzzy-value" style="color:var(--muted);margin-left:8px">75%</span>
+        <div style="flex:1"></div>
+        <label class="bg-job-label"><input type="checkbox" id="bg-job" /> Use background job for deletions</label>
+      </div>
+
+      <div id="actions-top" style="display:none">
+        <label style="margin: 0;">Delete mode:</label>
+        <select id="mode" style="min-width: 180px;">
+          <option value="trash">Move to Trash</option>
+          <option value="delete">Permanently Delete</option>
+        </select>
+        <label class="select-all"><input type="checkbox" id="select-all" /> <span>Select All</span></label>
+        <div class="dry-run-group">
+          <label class="dry-run-label"><input type="checkbox" id="dry-run" /> Test run (dry-run)</label>
+        </div>
+        <div style="flex: 1;"></div>
+        <button id="delete" class="btn danger">Delete Selected</button>
+      </div>
+
+      <div id="results" class="results"></div>
+      <div id="pager" class="pager" style="display:none">
+        <button id="prev-page" class="btn">Prev</button>
+        <button id="next-page" class="btn">Next</button>
+      </div>
+      <div id="dedupe" style="margin-top:12px"></div>
+
+    </div>
+
+    <!-- Confirmation modal -->
+    <div id="confirm-modal" class="modal" style="display:none">
+      <div class="modal-card">
+        <h3>Confirm Deletion</h3>
+        <p id="confirm-summary"></p>
+        <div id="confirm-samples" class="results" style="max-height:180px;overflow:auto"></div>
+        <div style="margin-top:12px;display:flex;gap:12px;justify-content:flex-end">
+          <button id="confirm-cancel" class="btn">Cancel</button>
+          <button id="confirm-ok" class="btn danger">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info/Alert modal -->
+    <div id="info-modal" class="modal" style="display:none">
+      <div class="modal-card">
+        <h3 id="info-modal-title">Information</h3>
+        <p id="info-modal-message"></p>
+        <div style="margin-top:16px;display:flex;gap:12px;justify-content:flex-end">
+          <button id="info-modal-ok" class="btn primary">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <script src="/main.js"></script>
+</body>
+
 </html>
