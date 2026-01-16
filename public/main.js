@@ -59,6 +59,67 @@ function displayHistory() {
   });
 }
 
+// Refresh duplicate suggestions based on remaining results
+function refreshDedupeFromResults() {
+  const resultsDiv = $('#results');
+  const dedupeDiv = $('#dedupe');
+  if (!resultsDiv || !dedupeDiv) return;
+
+  // Get all remaining items
+  const items = Array.from(resultsDiv.querySelectorAll('li'));
+  if (items.length === 0) {
+    dedupeDiv.innerHTML = '';
+    return;
+  }
+
+  // Extract data for similarity checking
+  const messages = items.map(li => ({
+    id: li.dataset.id,
+    subject: li.querySelector('.snippet')?.textContent || '',
+    from: li.textContent.split('\n')[1]?.trim() || ''
+  }));
+
+  // Simple deduplication based on matching subject and from
+  const dupeMap = {};
+  messages.forEach(msg => {
+    const key = `${msg.subject}|${msg.from}`;
+    if (!dupeMap[key]) {
+      dupeMap[key] = [];
+    }
+    dupeMap[key].push(msg);
+  });
+
+  // Build dedupe suggestions for items with dupes
+  const suggestions = [];
+  Object.values(dupeMap).forEach(group => {
+    if (group.length > 1) {
+      suggestions.push({
+        subject: group[0].subject,
+        from: group[0].from,
+        count: group.length,
+        ids: group.map(m => m.id)
+      });
+    }
+  });
+
+  // Render suggestions
+  dedupeDiv.innerHTML = '';
+  if (suggestions.length > 0) {
+    const title = document.createElement('div');
+    title.textContent = 'Duplicate suggestions';
+    title.style.marginBottom = '8px';
+    title.style.color = 'var(--muted)';
+    dedupeDiv.appendChild(title);
+
+    suggestions.forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'dupe-item';
+      el.innerHTML = `<div><strong>${d.subject || '(no subject)'}</strong><div class="snippet">${d.from || ''}</div></div><div>${d.count} msgs <button class="btn" data-ids='${JSON.stringify(d.ids)}'>Mark</button></div>`;
+      dedupeDiv.appendChild(el);
+    });
+  }
+}
+
 // Modal utility function to replace traditional alerts
 function showModal(title, message) {
   const titleEl = $('#info-modal-title');
@@ -224,6 +285,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const subject = (it.headers || []).find(h => h.name === 'Subject')?.value || '(no subject)';
       const from = (it.headers || []).find(h => h.name === 'From')?.value || '';
       const id = it.id;
+      li.dataset.id = id;
       li.innerHTML = `
         <div style="flex:0 0 28px"><input type="checkbox" data-id="${id}" /></div>
         <div style="flex:1">
@@ -363,8 +425,6 @@ window.addEventListener('DOMContentLoaded', () => {
       // Simulate dry-run result
       const results = checked.map(id => ({ id, status: 'dry-run' }));
       showModal('Dry-Run Complete', `Test run complete: ${results.length} items would be processed. No emails were deleted.`);
-      resultsDiv.innerHTML = '';
-      $('#actions-top').style.display = 'none';
       deleteBtn.disabled = false;
       return;
     }
@@ -384,7 +444,25 @@ window.addEventListener('DOMContentLoaded', () => {
       const poll = setInterval(async () => {
         const s = await fetch('/api/jobs/' + jobId).then(r => r.json());
         console.log('job', s);
-        if (s.status === 'done' || s.status === 'cancelled') { clearInterval(poll); showModal('Job Complete', 'Background job finished: ' + s.status); deleteBtn.disabled = false; resultsDiv.innerHTML = ''; $('#actions-top').style.display = 'none'; }
+        if (s.status === 'done' || s.status === 'cancelled') {
+          clearInterval(poll);
+          showModal('Job Complete', 'Background job finished: ' + s.status);
+          deleteBtn.disabled = false;
+          // Remove deleted items from results
+          checked.forEach(id => {
+            const li = resultsDiv.querySelector(`li[data-id="${id}"]`);
+            if (li) li.remove();
+          });
+          // Refresh duplicate suggestions
+          const remainingIds = Array.from(resultsDiv.querySelectorAll('li')).map(li => li.dataset.id);
+          if (remainingIds.length === 0) {
+            resultsDiv.innerHTML = '';
+            $('#actions-top').style.display = 'none';
+            $('#dedupe').innerHTML = '';
+          } else {
+            refreshDedupeFromResults();
+          }
+        }
       }, 1000);
       showModal('Job Started', 'Background job started: ' + jobId + '. Processing will continue in the background.');
     } else {
@@ -398,8 +476,23 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const data = await res.json();
-      showModal('Success', `Operation complete: ${data.results.length} items processed`);;
-      resultsDiv.innerHTML = ''; $('#actions-top').style.display = 'none';
+      showModal('Success', `Operation complete: ${data.results.length} items processed`);
+
+      // Remove deleted items from results
+      checked.forEach(id => {
+        const li = resultsDiv.querySelector(`li[data-id="${id}"]`);
+        if (li) li.remove();
+      });
+
+      // Refresh duplicate suggestions based on remaining items
+      const remainingItems = Array.from(resultsDiv.querySelectorAll('li'));
+      if (remainingItems.length === 0) {
+        resultsDiv.innerHTML = '';
+        $('#actions-top').style.display = 'none';
+        $('#dedupe').innerHTML = '';
+      } else {
+        refreshDedupeFromResults();
+      }
     }
   };
 
